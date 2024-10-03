@@ -1,8 +1,8 @@
 {
   "name": "time-zone-bot",
   "version": "0.0.1",
-  "description": "A web app to track multiple timezones",
-  "productName": "Timezone Bot",
+  "description": "Making time zones easy and beautiful.",
+  "productName": "Easy Time Zone",
   "author": "Michael Ferguson <michaeltferg@gmail.com>",
   "private": true,
   "scripts": {
