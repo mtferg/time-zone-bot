@@ -1,7 +1,7 @@
 {
   "name": "time-zone-bot",
   "version": "0.0.1",
-  "description": "Making time zones easy and beautiful.",
+  "description": "Making time zone management easy and beautiful.",
   "productName": "Easy Time Zone",
   "author": "Michael Ferguson <michaeltferg@gmail.com>",
   "private": true,
