@@ -3,6 +3,7 @@
 export default {
   data () {
     return {
+      deafultColor: '#0D0A0B',
       colors: [
         { used: false, value: '#5C6D70' },
         { used: false, value: '#D8973C' },
@@ -11,7 +12,9 @@ export default {
         { used: false, value: '#F0B67F' },
         { used: false, value: '#6A8E7F' },
         { used: false, value: '#808F85' },
-        { used: false, value: '#326273' }
+        { used: false, value: '#326273' },
+        { used: false, value: '#846267' },
+        { used: false, value: '#5F6062' }
       ]
     }
   },
@@ -20,7 +23,7 @@ export default {
     newColor () {
       const availableColors = this.colors.filter(color => !color.used)
       if (availableColors.length === 0) {
-        return null
+        return this.deafultColor
       }
 
       const color = availableColors[Math.floor(Math.random() * availableColors.length)]

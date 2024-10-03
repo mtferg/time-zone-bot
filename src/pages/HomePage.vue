@@ -29,7 +29,13 @@
       </q-scroll-area>
 
       <q-page-sticky position="bottom-right" :offset="[20, 20]">
-        <q-btn icon="add" color="secondary" @click="showAddDialog = true" fab />
+        <q-btn
+          icon="add"
+          color="secondary"
+          @click="showAddDialog = true"
+          :disabled="timezonesFull"
+          fab
+        />
       </q-page-sticky>
     </div>
 
@@ -60,12 +66,12 @@
           </q-select>
         </q-card-section>
 
-        <q-card-actions align="right" class="text-primary">
+        <q-card-actions align="right">
           <q-btn
             label="+ Add Time Zone"
+            color="primary"
             @click="addTimezone"
             :disable="!selectedTimezone"
-            flat
             v-close-popup
           />
         </q-card-actions>
@@ -161,6 +167,12 @@ export default defineComponent({
     }
   },
 
+  computed: {
+    timezonesFull () {
+      return this.timezones.length >= 10
+    }
+  },
+
   mounted () {
     this.loaded = false
 
@@ -188,11 +200,6 @@ export default defineComponent({
     }
 
     this.loaded = true
-  },
-
-  beforeUnmount () {
-    TimezoneStorage.setTimezones(this.timezones)
-    ColorStorage.setColors(this.colors)
   },
 
   components: {

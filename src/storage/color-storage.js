@@ -7,10 +7,6 @@ class ColorStorage {
 
   getColors () {
     return JSON.parse(localStorage.tzbColors || '[]')
-    // colors.forEach((color, idx) => {
-    //   colors[idx].used = color.used === 'true'
-    // })
-    // return colors
   }
 }
 
