@@ -10,6 +10,10 @@ export default {
 
     friendlyDate (timezone, date) {
       return moment.tz(date, timezone).format('MMM. Do')
+    },
+
+    timezoneOffset (timezone, date) {
+      return moment.tz(date, timezone).utcOffset() / 60
     }
   }
 }

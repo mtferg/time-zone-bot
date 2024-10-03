@@ -1,19 +1,40 @@
 <template>
-  <q-page>
-    <q-scroll-area style="height: 100vh; width: 100vw;">
-      <div class="row no-wrap">
-        <div v-for="(timezone, idx) in timezones" :key="idx" class="col">
-          <time-zone :color="timezone.color" :timezone="timezone.timezone" />
+  <q-page class="bg-dark">
+    <div v-if="!loaded" class="loader">
+      <q-spinner-grid size="200px" color="secondary" />
+    </div>
+    <div v-else>
+      <q-scroll-area style="height: 100vh; width: 100vw;">
+        <div class="row no-wrap">
+          <div v-for="(timezone, idx) in timezones" :key="idx" class="col">
+            <time-zone
+              :color="timezone.color"
+              :timezone="timezone.timezone"
+              :home="timezone.home"
+              :offset="timezone.offset"
+            >
+              <template v-slot:actions>
+                <q-btn
+                  v-if="!timezone.home"
+                  icon="close"
+                  color="white"
+                  @click="removeTimezone(idx)"
+                  flat
+                  round
+                />
+              </template>
+            </time-zone>
+          </div>
         </div>
-      </div>
-    </q-scroll-area>
+      </q-scroll-area>
 
-    <q-page-sticky position="bottom-right" :offset="[20, 20]">
-      <q-btn icon="add" color="secondary" @click="showAddDialog = true" fab />
-    </q-page-sticky>
+      <q-page-sticky position="bottom-right" :offset="[20, 20]">
+        <q-btn icon="add" color="secondary" @click="showAddDialog = true" fab />
+      </q-page-sticky>
+    </div>
 
     <q-dialog v-model="showAddDialog" persistent>
-      <q-card style="min-width: 350px">
+      <q-card style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Add Location</div>
           <q-space />
@@ -40,7 +61,13 @@
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
-          <q-btn label="Add" @click="addTimezone" flat v-close-popup />
+          <q-btn
+            label="+ Add Time Zone"
+            @click="addTimezone"
+            :disable="!selectedTimezone"
+            flat
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -58,11 +85,18 @@ import TimeZone from 'src/components/TimeZone.vue'
 
 // Mixins
 import ColorHelper from 'src/mixins/color-helper.js'
+import DateHelper from 'src/mixins/date-helper.js'
+
+// Stores
+import TimezoneStorage from 'src/storage/timezone-storage.js'
+import ColorStorage from 'src/storage/color-storage.js'
 
 export default defineComponent({
   data () {
     return {
       timezones: [],
+      homeTimezone: '',
+      loaded: false,
 
       showAddDialog: false,
       allTimezones: [],
@@ -78,11 +112,33 @@ export default defineComponent({
       this.selectedTimezone = ''
     },
 
-    pushTimezone (timezone) {
-      this.timezones.push({
+    pushTimezone (timezone, home = false) {
+      const timezonesCopy = JSON.parse(JSON.stringify(this.timezones))
+      const homeOffset = this.timezoneOffset(this.homeTimezone)
+      const offset = this.timezoneOffset(timezone)
+
+      const newTimezone = {
         color: this.newColor(),
-        timezone: timezone
-      })
+        timezone: timezone,
+        home: home,
+        offset: offset - homeOffset
+      }
+
+      timezonesCopy.push(newTimezone)
+      timezonesCopy.sort((a, b) => a.offset - b.offset)
+
+      this.timezones = timezonesCopy
+
+      TimezoneStorage.setTimezones(this.timezones)
+      ColorStorage.setColors(this.colors)
+    },
+
+    removeTimezone (idx) {
+      const color = this.timezones[idx].color
+      this.timezones.splice(idx, 1)
+      TimezoneStorage.setTimezones(this.timezones)
+      this.releaseColor(color)
+      ColorStorage.setColors(this.colors)
     },
 
     closeAddDialog () {
@@ -106,13 +162,37 @@ export default defineComponent({
   },
 
   mounted () {
+    this.loaded = false
+
     // Get Timezone Options
     this.allTimezones = moment.tz.names()
     this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
 
-    // Add User Timezone
-    const userTimezone = moment.tz.guess()
-    this.pushTimezone(userTimezone)
+    // Set Colors
+    const savedColors = ColorStorage.getColors()
+    if (savedColors && savedColors.length > 0) {
+      this.colors = savedColors
+    }
+
+    // Set Saved Timezones or Add Home
+    const savedTimezones = TimezoneStorage.getTimezones()
+    if (savedTimezones && savedTimezones.length > 0) {
+      this.timezones = savedTimezones
+      this.timezones.forEach((timezone) => {
+        if (timezone.home) this.homeTimezone = timezone.timezone
+      })
+    } else {
+      const userTimezone = moment.tz.guess()
+      this.homeTimezone = userTimezone
+      this.pushTimezone(userTimezone, true)
+    }
+
+    this.loaded = true
+  },
+
+  beforeUnmount () {
+    TimezoneStorage.setTimezones(this.timezones)
+    ColorStorage.setColors(this.colors)
   },
 
   components: {
@@ -120,7 +200,19 @@ export default defineComponent({
   },
 
   mixins: [
-    ColorHelper
+    ColorHelper,
+    DateHelper
   ]
 })
 </script>
+
+<style lang="scss">
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: $dark;
+}
+</style>
