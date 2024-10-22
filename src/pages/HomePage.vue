@@ -12,6 +12,7 @@
               :timezone="timezone.timezone"
               :home="timezone.home"
               :offset="timezone.offset"
+              :color-options="colors"
             >
               <template v-slot:actions>
                 <q-btn
@@ -90,7 +91,6 @@ import moment from 'moment-timezone'
 import TimeZone from 'src/components/TimeZone.vue'
 
 // Mixins
-import ColorHelper from 'src/mixins/color-helper.js'
 import DateHelper from 'src/mixins/date-helper.js'
 
 // Stores
@@ -100,18 +100,54 @@ import ColorStorage from 'src/storage/color-storage.js'
 export default defineComponent({
   data () {
     return {
-      timezones: [],
-      homeTimezone: '',
       loaded: false,
 
+      // Timezone Info
+      timezones: [],
+      homeTimezone: '',
+
+      // Adding Timezones
       showAddDialog: false,
       allTimezones: [],
       timezoneOpts: [],
-      selectedTimezone: ''
+      selectedTimezone: '',
+
+      // Colors
+      deafultColor: '#0D0A0B',
+      colors: [
+        { used: false, value: '#D8B4A0' },
+        { used: false, value: '#F0B67F' },
+        { used: false, value: '#C69C72' },
+        { used: false, value: '#D8973C' },
+        { used: false, value: '#BD632F' },
+        { used: false, value: '#C0B7B1' },
+        { used: false, value: '#AEB4A9' },
+        { used: false, value: '#95AFBA' },
+        { used: false, value: '#326273' },
+        { used: false, value: '#274156' },
+        { used: false, value: '#6A8E7F' },
+        { used: false, value: '#808F85' },
+        { used: false, value: '#08605F' },
+        { used: false, value: '#D89A9E' },
+        { used: false, value: '#846267' },
+        { used: false, value: '#655A7C' },
+        { used: false, value: '#5F6062' },
+        { used: false, value: '#575761' },
+        { used: false, value: '#433E3F' },
+        { used: false, value: '#223843' }
+      ]
     }
   },
 
   methods: {
+    // --- Setting Data ---
+    // Get time zone options
+    getTimezoneOptions () {
+      this.allTimezones = moment.tz.names()
+      this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
+    },
+
+    // --- Adding / Remvoing Time Zones ---
     addTimezone () {
       if (!this.selectedTimezone) return
       this.pushTimezone(this.selectedTimezone)
@@ -164,12 +200,46 @@ export default defineComponent({
         const needle = val.toLowerCase()
         this.timezoneOpts = this.allTimezones.filter((v) => v.toLowerCase().indexOf(needle) > -1)
       })
+    },
+
+    // --- Color Functionality ---
+    newColor () {
+      const availableColors = this.colors.filter(color => !color.used)
+      if (availableColors.length === 0) {
+        return this.deafultColor
+      }
+
+      const color = availableColors[Math.floor(Math.random() * availableColors.length)]
+      color.used = true
+      return color.value
+    },
+
+    releaseColor (color) {
+      const foundColor = this.colors.find((c) => c.value === color)
+      if (foundColor) foundColor.used = false
+    },
+
+    changeColor (data) {
+      // Find Timezone
+      const foundTimezone = this.timezones.find((timezone) => timezone.timezone === data.timezone)
+      if (!foundTimezone) return
+
+      this.releaseColor(foundTimezone.color) // Release old color
+      foundTimezone.color = data.color // Update Color
+
+      // Set new color as used
+      const newColor = this.colors.find((color) => color.value === data.color)
+      if (newColor) newColor.used = true
+
+      // Save Color and Timezone Changes
+      ColorStorage.setColors(this.colors)
+      TimezoneStorage.setTimezones(this.timezones)
     }
   },
 
   computed: {
     timezonesFull () {
-      return this.timezones.length >= 10
+      return this.timezones.length >= 20
     }
   },
 
@@ -177,8 +247,7 @@ export default defineComponent({
     this.loaded = false
 
     // Get Timezone Options
-    this.allTimezones = moment.tz.names()
-    this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
+    this.getTimezoneOptions()
 
     // Set Colors
     const savedColors = ColorStorage.getColors()
@@ -200,6 +269,14 @@ export default defineComponent({
     }
 
     this.loaded = true
+
+    this.$events.on('change-color', (data) => {
+      this.changeColor(data)
+    })
+  },
+
+  beforeUnmount () {
+    this.$events.off('change-color')
   },
 
   components: {
@@ -207,7 +284,6 @@ export default defineComponent({
   },
 
   mixins: [
-    ColorHelper,
     DateHelper
   ]
 })
