@@ -147,6 +147,48 @@ export default defineComponent({
       this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
     },
 
+    // Reconcile time zone information
+    reconcileTimezones () {
+      // Get saved timezones
+      const savedTimezones = TimezoneStorage.getTimezones()
+
+      if (savedTimezones && savedTimezones.length > 0) {
+        // Import saved time zones
+        savedTimezones.forEach((tz) => {
+          this.timezones.push({
+            timezone: tz.timezone,
+            color: tz.color,
+            home: tz.home,
+            offset: tz.offset,
+            label: tz.label || ''
+          })
+          if (tz.home) this.homeTimezone = tz.timezone
+        })
+      } else {
+        // Add home timezone
+        const userTimezone = moment.tz.guess()
+        this.homeTimezone = userTimezone
+        this.pushTimezone(userTimezone, true)
+      }
+    },
+
+    // Reconcile color information
+    reconcileColors () {
+      // Get saved colors
+      const savedColors = ColorStorage.getColors()
+
+      // Set used colors
+      if (savedColors && savedColors.length > 0) {
+        this.colors.forEach((color, idx) => {
+          const savedColor = savedColors.find((c) => c.value === color.value)
+          if (savedColor) this.colors[idx].used = savedColor.used
+        })
+      }
+
+      // Save colors
+      ColorStorage.setColors(this.colors)
+    },
+
     // --- Adding / Remvoing Time Zones ---
     addTimezone () {
       if (!this.selectedTimezone) return
@@ -163,7 +205,8 @@ export default defineComponent({
         color: this.newColor(),
         timezone: timezone,
         home: home,
-        offset: offset - homeOffset
+        offset: offset - homeOffset,
+        label: ''
       }
 
       timezonesCopy.push(newTimezone)
@@ -245,31 +288,12 @@ export default defineComponent({
 
   mounted () {
     this.loaded = false
-
-    // Get Timezone Options
     this.getTimezoneOptions()
-
-    // Set Colors
-    const savedColors = ColorStorage.getColors()
-    if (savedColors && savedColors.length > 0) {
-      this.colors = savedColors
-    }
-
-    // Set Saved Timezones or Add Home
-    const savedTimezones = TimezoneStorage.getTimezones()
-    if (savedTimezones && savedTimezones.length > 0) {
-      this.timezones = savedTimezones
-      this.timezones.forEach((timezone) => {
-        if (timezone.home) this.homeTimezone = timezone.timezone
-      })
-    } else {
-      const userTimezone = moment.tz.guess()
-      this.homeTimezone = userTimezone
-      this.pushTimezone(userTimezone, true)
-    }
-
+    this.reconcileTimezones()
+    this.reconcileColors()
     this.loaded = true
 
+    // Event Listeners
     this.$events.on('change-color', (data) => {
       this.changeColor(data)
     })
