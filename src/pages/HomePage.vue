@@ -31,7 +31,7 @@
         <q-btn
           icon="help"
           size="lg"
-          color="blue-grey-2"
+          color="blue-grey-1"
           @click="showHelpDialog = true"
           flat
           round
@@ -42,7 +42,7 @@
     </div>
 
     <q-dialog v-model="showAddDialog" persistent>
-      <q-card style="min-width: 400px">
+      <q-card class="q-px-sm" style="min-width: 500px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Add Location</div>
           <q-space />
@@ -88,16 +88,20 @@
           <q-btn icon="close" @click="showHelpDialog = false" flat round dense />
         </q-card-section>
 
-        <q-card-section class="text-body1">
-          <p>
+        <q-card-section class="text-body1 q-my-sm">
+          <div>
             <span class="text-weight-bold">Author: </span>
-            <span>Michael Ferguson </span>
-            <span> &bull; </span>
+            <span>Michael Ferguson</span>
+          </div>
+          <div class="q-mt-xs">
+            <span class="text-weight-bold">Contact: </span>
             <a href="mailto:michaeltferg@gmail.com">michaeltferg@gmail.com</a>
-          </p>
-          <p>
+            <span> &bull; </span>
+            <a href="https://www.linkedin.com/in/mtferg/" target="_blank">linkedin.com/in/mtferg</a>
+          </div>
+          <div class="q-mt-lg">
             This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael Ferguson) for any inquiries or feature requests.
-          </p>
+          </div>
         </q-card-section>
 
         <q-card-actions align="left">
