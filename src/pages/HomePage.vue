@@ -13,18 +13,7 @@
               :home="timezone.home"
               :offset="timezone.offset"
               :color-options="colors"
-            >
-              <template v-slot:actions>
-                <q-btn
-                  v-if="!timezone.home"
-                  icon="close"
-                  color="white"
-                  @click="removeTimezone(idx)"
-                  flat
-                  round
-                />
-              </template>
-            </time-zone>
+            />
           </div>
         </div>
       </q-scroll-area>
@@ -35,6 +24,18 @@
           color="secondary"
           @click="showAddDialog = true"
           :disabled="timezonesFull"
+          fab
+        />
+      </q-page-sticky>
+      <q-page-sticky position="top-right" :offset="[20, 20]">
+        <q-btn
+          icon="help"
+          size="lg"
+          color="blue-grey-2"
+          @click="showHelpDialog = true"
+          flat
+          round
+          dense
           fab
         />
       </q-page-sticky>
@@ -78,6 +79,45 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="showHelpDialog">
+      <q-card style="min-width: 600px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h4">v{{ appVersion }}</div>
+          <q-space />
+          <q-btn icon="close" @click="showHelpDialog = false" flat round dense />
+        </q-card-section>
+
+        <q-card-section class="text-body1">
+          <p>
+            <span class="text-weight-bold">Author: </span>
+            <span>Michael Ferguson </span>
+            <span> &bull; </span>
+            <a href="mailto:michaeltferg@gmail.com">michaeltferg@gmail.com</a>
+          </p>
+          <p>
+            This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael Ferguson) for inquiries or feature requests.
+          </p>
+        </q-card-section>
+
+        <q-card-actions align="left">
+          <q-btn
+            icon="clear"
+            label="Reset Site Data"
+            color="negative"
+            @click="resetData"
+            flat
+          />
+          <q-space />
+          <!-- <q-btn
+            icon="rocket_launch"
+            label="Get Lost"
+            color="light-blue-2"
+            flat
+          /> -->
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -100,6 +140,7 @@ import ColorStorage from 'src/storage/color-storage.js'
 export default defineComponent({
   data () {
     return {
+      appVersion: '2.0.0',
       loaded: false,
 
       // Timezone Info
@@ -107,7 +148,6 @@ export default defineComponent({
       homeTimezone: '',
 
       // Adding Timezones
-      showAddDialog: false,
       allTimezones: [],
       timezoneOpts: [],
       selectedTimezone: '',
@@ -135,16 +175,67 @@ export default defineComponent({
         { used: false, value: '#575761' },
         { used: false, value: '#433E3F' },
         { used: false, value: '#223843' }
-      ]
+      ],
+
+      // Dialogs
+      showAddDialog: false,
+      showHelpDialog: false
     }
   },
 
   methods: {
+    // Setup
+    setupData () {
+      this.loaded = false
+      this.getTimezoneOptions()
+      this.reconcileTimezones()
+      this.reconcileColors()
+      this.loaded = true
+    },
+
+    resetData () {
+      // Reset Local Data
+      this.timezones = []
+      this.colors.forEach((_color, idx) => { this.colors[idx].used = false })
+      this.homeTimezone = ''
+
+      // Reset Storage
+      TimezoneStorage.setTimezones(this.timezones)
+      ColorStorage.setColors(this.colors)
+
+      // Reset Data
+      this.setupData()
+    },
+
     // --- Setting Data ---
     // Get time zone options
     getTimezoneOptions () {
       this.allTimezones = moment.tz.names()
       this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
+    },
+
+    // Sets the given time zone as the new home
+    setHomeTimezone (timezone) {
+      this.homeTimezone = timezone
+      const homeOffset = this.timezoneOffset(timezone)
+
+      // Set home flag and readjust offsets
+      this.timezones.forEach((tz) => {
+        const offset = this.timezoneOffset(tz.timezone)
+        tz.home = tz.timezone === timezone
+        tz.offset = offset - homeOffset
+      })
+
+      // Re-sort timezones
+      this.timezones.sort((a, b) => a.offset - b.offset)
+
+      // Save time zone changes
+      TimezoneStorage.setTimezones(this.timezones)
+    },
+
+    refreshHomeTimezone () {
+      const userTimezone = moment.tz.guess()
+      this.setHomeTimezone(userTimezone)
     },
 
     // Reconcile time zone information
@@ -218,12 +309,19 @@ export default defineComponent({
       ColorStorage.setColors(this.colors)
     },
 
-    removeTimezone (idx) {
+    removeTimezone (timezone) {
+      // Find Timezone
+      const idx = this.timezones.findIndex((tz) => tz.timezone === timezone)
+      if (idx < 0) return
+
+      // Release Color
       const color = this.timezones[idx].color
-      this.timezones.splice(idx, 1)
-      TimezoneStorage.setTimezones(this.timezones)
       this.releaseColor(color)
       ColorStorage.setColors(this.colors)
+
+      // Remove Timezone
+      this.timezones.splice(idx, 1)
+      TimezoneStorage.setTimezones(this.timezones)
     },
 
     closeAddDialog () {
@@ -287,20 +385,27 @@ export default defineComponent({
   },
 
   mounted () {
-    this.loaded = false
-    this.getTimezoneOptions()
-    this.reconcileTimezones()
-    this.reconcileColors()
-    this.loaded = true
+    this.setupData()
 
     // Event Listeners
     this.$events.on('change-color', (data) => {
       this.changeColor(data)
     })
+    this.$events.on('remove-timezone', (timezone) => {
+      this.removeTimezone(timezone)
+    })
+    this.$events.on('set-home-timezone', (timezone) => {
+      this.setHomeTimezone(timezone)
+    })
+    this.$events.on('refresh-home-timezone', () => {
+      this.refreshHomeTimezone()
+    })
   },
 
   beforeUnmount () {
     this.$events.off('change-color')
+    this.$events.off('set-home-timezone')
+    this.$events.off('remove-timezone')
   },
 
   components: {

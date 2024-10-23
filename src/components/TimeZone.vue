@@ -6,7 +6,14 @@
     @mouseleave="offHover"
   >
     <div class="action-btns">
-      <slot name="actions" />
+      <q-btn
+        v-if="!home && isHovered"
+        icon="close"
+        color="white"
+        @click="removeTimezone"
+        flat
+        round
+      />
     </div>
     <div class="timezone-info text-white">
       <div class="text-h3 text-white q-mb-md">
@@ -46,10 +53,40 @@
     </div>
 
     <div class="offset-icon">
-      <q-icon v-if="home" name="home" size="30px" color="white" />
-      <div v-else class="text-h6 text-white">
-        {{ friendlyOffset }}
-      </div>
+      <q-btn
+        v-if="home"
+        icon="home"
+        size="lg"
+        color="white"
+        flat
+        round
+        dense
+      >
+        <q-menu anchor="top middle" self="bottom middle" transition-show="scale">
+          <q-item clickable v-ripple @click="refreshHomeTimezone">
+            <q-item-section>
+              Recalculate Home
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </q-btn>
+      <q-btn
+        v-else
+        :label="friendlyOffset"
+        size="lg"
+        color="white"
+        flat
+        round
+        dense
+      >
+        <q-menu anchor="top middle" self="bottom middle" transition-show="scale">
+          <q-item clickable v-ripple @click="setHomeTimezone">
+            <q-item-section>
+              Set as Home
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </q-btn>
     </div>
   </q-page>
 </template>
@@ -108,6 +145,18 @@ export default defineComponent({
       })
     },
 
+    setHomeTimezone () {
+      this.$events.emit('set-home-timezone', this.timezone)
+    },
+
+    refreshHomeTimezone () {
+      this.$events.emit('refresh-home-timezone')
+    },
+
+    removeTimezone () {
+      this.$events.emit('remove-timezone', this.timezone)
+    },
+
     onHover () {
       this.isHovered = true
     },
@@ -161,7 +210,7 @@ export default defineComponent({
 
 .offset-icon {
   position: absolute;
-  bottom: 15px;
+  bottom: 5px;
   left: 50%;
   transform: translateX(-50%);
 }

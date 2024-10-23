@@ -8,6 +8,10 @@ class TimezoneStorage {
   getTimezones () {
     return JSON.parse(localStorage.tbzTimezones || '[]')
   }
+
+  clearTimezones () {
+    delete localStorage.tbzTimezones
+  }
 }
 
 const timezoneStorage = new TimezoneStorage()
