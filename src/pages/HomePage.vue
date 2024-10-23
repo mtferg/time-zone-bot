@@ -96,7 +96,7 @@
             <a href="mailto:michaeltferg@gmail.com">michaeltferg@gmail.com</a>
           </p>
           <p>
-            This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael Ferguson) for inquiries or feature requests.
+            This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael Ferguson) for any inquiries or feature requests.
           </p>
         </q-card-section>
 
@@ -109,12 +109,13 @@
             flat
           />
           <q-space />
-          <!-- <q-btn
+          <q-btn
             icon="rocket_launch"
             label="Get Lost"
             color="light-blue-2"
+            @click="getLost"
             flat
-          /> -->
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -205,6 +206,9 @@ export default defineComponent({
 
       // Reset Data
       this.setupData()
+
+      // Close Help Dialog
+      this.showHelpDialog = false
     },
 
     // --- Setting Data ---
@@ -218,13 +222,24 @@ export default defineComponent({
     setHomeTimezone (timezone) {
       this.homeTimezone = timezone
       const homeOffset = this.timezoneOffset(timezone)
+      let foundTimezone = false
 
       // Set home flag and readjust offsets
       this.timezones.forEach((tz) => {
         const offset = this.timezoneOffset(tz.timezone)
-        tz.home = tz.timezone === timezone
         tz.offset = offset - homeOffset
+        if (tz.timezone === timezone) {
+          tz.home = true
+          foundTimezone = true
+        } else {
+          tz.home = false
+        }
       })
+
+      // Add timezone if it doesn't already exist
+      if (!foundTimezone) {
+        this.pushTimezone(timezone, true)
+      }
 
       // Re-sort timezones
       this.timezones.sort((a, b) => a.offset - b.offset)
@@ -375,6 +390,11 @@ export default defineComponent({
       // Save Color and Timezone Changes
       ColorStorage.setColors(this.colors)
       TimezoneStorage.setTimezones(this.timezones)
+    },
+
+    getLost () {
+      // Push url router to /lost-in-space
+      this.$router.push('/lost-in-space')
     }
   },
 
