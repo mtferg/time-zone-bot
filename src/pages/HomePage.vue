@@ -103,7 +103,7 @@
         <q-card-actions align="left">
           <q-btn
             icon="clear"
-            label="Reset Site Data"
+            label="Reset Time Zone Data"
             color="negative"
             @click="resetData"
             flat
@@ -113,7 +113,7 @@
             icon="rocket_launch"
             label="Get Lost"
             color="light-blue-2"
-            @click="getLost"
+            to="/lost-in-space"
             flat
           />
         </q-card-actions>
@@ -390,11 +390,6 @@ export default defineComponent({
       // Save Color and Timezone Changes
       ColorStorage.setColors(this.colors)
       TimezoneStorage.setTimezones(this.timezones)
-    },
-
-    getLost () {
-      // Push url router to /lost-in-space
-      this.$router.push('/lost-in-space')
     }
   },
 
