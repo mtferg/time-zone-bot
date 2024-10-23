@@ -20,6 +20,7 @@
     "express": "^4.21.0",
     "moment-timezone": "^0.5.45",
     "quasar": "^2.6.0",
+    "tiny-emitter": "^2.1.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0"
   },

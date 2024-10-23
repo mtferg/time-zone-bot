@@ -8,6 +8,10 @@ class ColorStorage {
   getColors () {
     return JSON.parse(localStorage.tzbColors || '[]')
   }
+
+  clearColors () {
+    delete localStorage.tzbColors
+  }
 }
 
 const colorStorage = new ColorStorage()

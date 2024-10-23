@@ -1,7 +1,19 @@
 <template>
-  <q-page class="timezone" :style="`background-color: ${color}`">
+  <q-page
+    class="timezone"
+    :style="`background-color: ${color}`"
+    @mouseover="onHover"
+    @mouseleave="offHover"
+  >
     <div class="action-btns">
-      <slot name="actions" />
+      <q-btn
+        v-if="!home && isHovered"
+        icon="close"
+        color="white"
+        @click="removeTimezone"
+        flat
+        round
+      />
     </div>
     <div class="timezone-info text-white">
       <div class="text-h3 text-white q-mb-md">
@@ -14,13 +26,67 @@
       <div class="text-h6 q-mt-md">
         {{ timezone }}
       </div>
+      <div>
+        <q-btn
+          v-show="isHovered"
+          class="q-mt-sm"
+          color="white"
+          icon="palette"
+          @click="showColorPicker = !showColorPicker"
+          flat
+          round
+        />
+      </div>
+      <div
+        v-show="showColorPicker && isHovered"
+        class="color-picker row items-center justify-center">
+        <div v-for="(color, idx) in unusedColors" :key="idx" class="col col-auto q-pa-xs">
+          <q-btn
+            :style="`background-color: ${color.value}`"
+            @click="changeColor(color.value)"
+            flat
+            round
+            dense
+          />
+        </div>
+      </div>
     </div>
 
     <div class="offset-icon">
-      <q-icon v-if="home" name="home" size="30px" color="white" />
-      <div v-else class="text-h6 text-white">
-        {{ friendlyOffset }}
-      </div>
+      <q-btn
+        v-if="home"
+        icon="home"
+        size="lg"
+        color="white"
+        flat
+        round
+        dense
+      >
+        <q-menu anchor="top middle" self="bottom middle" transition-show="scale">
+          <q-item clickable v-ripple @click="refreshHomeTimezone">
+            <q-item-section>
+              Recalculate Home
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </q-btn>
+      <q-btn
+        v-else
+        :label="friendlyOffset"
+        size="lg"
+        color="white"
+        flat
+        round
+        dense
+      >
+        <q-menu anchor="top middle" self="bottom middle" transition-show="scale">
+          <q-item clickable v-ripple @click="setHomeTimezone">
+            <q-item-section>
+              Set as Home
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </q-btn>
     </div>
   </q-page>
 </template>
@@ -49,13 +115,20 @@ export default defineComponent({
     offset: {
       type: Number,
       required: true
+    },
+    colorOptions: {
+      type: Array,
+      required: true
     }
   },
 
   data () {
     return {
       time: null,
-      date: null
+      date: null,
+
+      isHovered: false,
+      showColorPicker: false
     }
   },
 
@@ -63,12 +136,43 @@ export default defineComponent({
     getDateAndTime () {
       this.time = this.friendlyTime(this.timezone)
       this.date = this.friendlyDate(this.timezone)
+    },
+
+    changeColor (colorValue) {
+      this.$events.emit('change-color', {
+        timezone: this.timezone,
+        color: colorValue
+      })
+    },
+
+    setHomeTimezone () {
+      this.$events.emit('set-home-timezone', this.timezone)
+    },
+
+    refreshHomeTimezone () {
+      this.$events.emit('refresh-home-timezone')
+    },
+
+    removeTimezone () {
+      this.$events.emit('remove-timezone', this.timezone)
+    },
+
+    onHover () {
+      this.isHovered = true
+    },
+
+    offHover () {
+      this.isHovered = false
+      this.showColorPicker = false
     }
   },
 
   computed: {
     friendlyOffset () {
       return this.offset > 0 ? `+${this.offset}` : this.offset
+    },
+    unusedColors () {
+      return this.colorOptions.filter(color => !color.used)
     }
   },
 
@@ -106,7 +210,7 @@ export default defineComponent({
 
 .offset-icon {
   position: absolute;
-  bottom: 15px;
+  bottom: 5px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -116,5 +220,10 @@ export default defineComponent({
   top: 15px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.color-picker {
+  max-width: 350px;
+  margin: 0 auto;
 }
 </style>
