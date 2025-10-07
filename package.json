@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
+    "@vvo/tzdb": "^6.186.0",
     "axios": "^1.2.1",
     "connect-history-api-fallback": "^2.0.0",
     "express": "^4.21.0",
+    "fuse.js": "^7.1.0",
     "moment-timezone": "^0.5.45",
     "quasar": "^2.6.0",
     "tiny-emitter": "^2.1.0",

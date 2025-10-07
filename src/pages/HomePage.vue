@@ -56,6 +56,10 @@
             label="Time Zone"
             :options="timezoneOpts"
             @filter="filterTimezones"
+            option-value="value"
+            option-label="label"
+            emit-value
+            map-options
             use-input
           >
             <template v-slot:no-option>
@@ -131,6 +135,8 @@ import { defineComponent } from 'vue'
 
 // Packages
 import moment from 'moment-timezone'
+import Fuse from 'fuse.js'
+import { getTimeZones } from '@vvo/tzdb'
 
 // Components
 import TimeZone from 'src/components/TimeZone.vue'
@@ -153,9 +159,13 @@ export default defineComponent({
       homeTimezone: '',
 
       // Adding Timezones
-      allTimezones: [],
-      timezoneOpts: [],
+      allTimezones: [], // full list of option objects { label, value }
+      timezoneOpts: [], // filtered list shown in QSelect
       selectedTimezone: '',
+
+      // Search dataset
+      tzdbList: [],
+      fuse: null,
 
       // Colors
       deafultColor: '#0D0A0B',
@@ -215,11 +225,34 @@ export default defineComponent({
       this.showHelpDialog = false
     },
 
+    // Build a friendly label like: "Eastern Time — New York (UTC-04:00)"
+    formatTimezoneLabel (tz) {
+      const alt = tz.alternativeName || tz.name
+      const city = (tz.mainCities && tz.mainCities.length > 0) ? tz.mainCities[0] : tz.countryName
+      const offset = moment.tz(tz.name).format('Z')
+      return `${alt} — ${city} (UTC${offset})`
+    },
+
     // --- Setting Data ---
     // Get time zone options
     getTimezoneOptions () {
-      this.allTimezones = moment.tz.names()
-      this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
+      // Build dataset from tzdb
+      const tzs = getTimeZones()
+      this.tzdbList = tzs
+
+      // Build friendly label options and Fuse index
+      this.allTimezones = tzs.map((tz) => ({
+        label: this.formatTimezoneLabel(tz),
+        value: tz.name
+      }))
+      this.timezoneOpts = this.allTimezones.slice()
+
+      this.fuse = new Fuse(tzs, {
+        keys: ['name', 'alternativeName', 'group', 'mainCities', 'countryName'],
+        threshold: 0.3,
+        ignoreLocation: true,
+        minMatchCharLength: 1
+      })
     },
 
     // Sets the given time zone as the new home
@@ -351,14 +384,28 @@ export default defineComponent({
     filterTimezones (val, update) {
       if (val === '') {
         update(() => {
-          this.timezoneOpts = JSON.parse(JSON.stringify(this.allTimezones))
+          this.timezoneOpts = this.allTimezones.slice()
         })
         return
       }
 
       update(() => {
-        const needle = val.toLowerCase()
-        this.timezoneOpts = this.allTimezones.filter((v) => v.toLowerCase().indexOf(needle) > -1)
+        const needle = String(val).toLowerCase()
+        if (!this.fuse) {
+          // Fallback to simple filter on labels
+          this.timezoneOpts = this.allTimezones.filter((opt) =>
+            String(opt.label).toLowerCase().indexOf(needle) > -1 ||
+            String(opt.value).toLowerCase().indexOf(needle) > -1
+          )
+          return
+        }
+
+        const results = this.fuse.search(needle, { limit: 100 })
+        const names = results.map(r => r.item.name)
+        const byValue = new Map(this.allTimezones.map(opt => [opt.value, opt]))
+        this.timezoneOpts = names
+          .map((name) => byValue.get(name))
+          .filter(Boolean)
       })
     },
 
