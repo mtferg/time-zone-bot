@@ -1,0 +1,29 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [ main ]
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm ci
+      - name: Build
+        run: npx quasar build
+        env:
+          # If using GitHub Pages project URL (no custom domain), set repo name:
+          # PUBLIC_PATH: /time-zone-bot/
+          # If using a custom domain, leave it '/' (omit PUBLIC_PATH or set to '/')
+          PUBLIC_PATH: /
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/spa
+          # For custom domain, set:
+          cname: easytime.zone
