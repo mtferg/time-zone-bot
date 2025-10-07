@@ -99,8 +99,6 @@
           </div>
           <div class="q-mt-xs">
             <span class="text-weight-bold">Contact: </span>
-            <a href="mailto:michaeltferg@gmail.com">michaeltferg@gmail.com</a>
-            <span> &bull; </span>
             <a href="https://www.linkedin.com/in/mtferg/" target="_blank">linkedin.com/in/mtferg</a>
           </div>
           <div class="q-mt-lg">
@@ -114,14 +112,6 @@
             label="Reset Time Zone Data"
             color="negative"
             @click="resetData"
-            flat
-          />
-          <q-space />
-          <q-btn
-            icon="rocket_launch"
-            label="Get Lost"
-            color="light-blue-2"
-            to="/lost-in-space"
             flat
           />
         </q-card-actions>
@@ -151,7 +141,7 @@ import ColorStorage from 'src/storage/color-storage.js'
 export default defineComponent({
   data () {
     return {
-      appVersion: '2.0.0',
+      appVersion: '3.0.0',
       loaded: false,
 
       // Timezone Info
