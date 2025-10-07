@@ -16,6 +16,13 @@
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <!-- Buy Me a Coffee button (fixed top-right) -->
+    <div class="bmc-button-fixed">
+      <a href="https://www.buymeacoffee.com/mtferg" target="_blank" rel="noopener">
+        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" />
+      </a>
+    </div>
   </q-layout>
 </template>
 
@@ -30,3 +37,24 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+.bmc-button-fixed {
+  position: fixed;
+  top: 75px;
+  right: 20px;
+  z-index: 2000;
+}
+
+.bmc-button-fixed img {
+  height: 50px !important;
+  width: 180px !important;
+}
+
+@media (max-width: 480px) {
+  .bmc-button-fixed img {
+    height: 40px !important;
+    width: 150px !important;
+  }
+}
+</style>
