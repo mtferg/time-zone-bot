@@ -24,7 +24,7 @@
       </div>
       <q-separator size="3px" style="max-width: 80%; margin: 0 auto;" />
       <div class="text-h6 q-mt-md">
-        {{ timezone }}
+        {{ friendlyTimezone }}
       </div>
       <div>
         <q-btn
@@ -93,6 +93,7 @@
 
 <script>
 import { defineComponent } from 'vue'
+import { getTimeZones } from '@vvo/tzdb'
 
 // Helpers
 import DateHelper from 'src/mixins/date-helper.js'
@@ -170,6 +171,14 @@ export default defineComponent({
   computed: {
     friendlyOffset () {
       return this.offset > 0 ? `+${this.offset}` : this.offset
+    },
+    friendlyTimezone () {
+      const tzs = getTimeZones()
+      const tz = tzs.find((t) => t.name === this.timezone || (t.group && t.group.includes(this.timezone)))
+      if (!tz) return this.timezone
+      const alt = tz.alternativeName || tz.name
+      const city = (tz.mainCities && tz.mainCities.length > 0) ? tz.mainCities[0] : tz.countryName
+      return `${alt} (${city})`
     },
     unusedColors () {
       return this.colorOptions.filter(color => !color.used)
