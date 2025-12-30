@@ -7,37 +7,17 @@
       <q-scroll-area style="height: 100vh; width: 100vw;">
         <div class="row no-wrap">
           <div v-for="(timezone, idx) in timezones" :key="idx" class="col">
-            <time-zone
-              :color="timezone.color"
-              :timezone="timezone.timezone"
-              :home="timezone.home"
-              :offset="timezone.offset"
-              :color-options="colors"
-            />
+            <time-zone :color="timezone.color" :timezone="timezone.timezone" :home="timezone.home"
+              :offset="timezone.offset" :color-options="colors" />
           </div>
         </div>
       </q-scroll-area>
 
       <q-page-sticky position="bottom-right" :offset="[20, 20]">
-        <q-btn
-          icon="add"
-          color="secondary"
-          @click="showAddDialog = true"
-          :disabled="timezonesFull"
-          fab
-        />
+        <q-btn icon="add" color="secondary" @click="showAddDialog = true" :disabled="timezonesFull" fab />
       </q-page-sticky>
       <q-page-sticky position="top-right" :offset="[20, 20]">
-        <q-btn
-          icon="help"
-          size="lg"
-          color="blue-grey-1"
-          @click="showHelpDialog = true"
-          flat
-          round
-          dense
-          fab
-        />
+        <q-btn icon="help" size="lg" color="blue-grey-1" @click="showHelpDialog = true" flat round dense fab />
       </q-page-sticky>
     </div>
 
@@ -50,18 +30,8 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-select
-            v-model="selectedTimezone"
-            input-debounce="0"
-            label="Time Zone"
-            :options="timezoneOpts"
-            @filter="filterTimezones"
-            option-value="value"
-            option-label="label"
-            emit-value
-            map-options
-            use-input
-          >
+          <q-select v-model="selectedTimezone" input-debounce="0" label="Time Zone" :options="timezoneOpts"
+            @filter="filterTimezones" option-value="value" option-label="label" emit-value map-options use-input>
             <template v-slot:no-option>
               <q-item>
                 <q-item-section class="text-grey">
@@ -73,13 +43,8 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn
-            label="+ Add Time Zone"
-            color="primary"
-            @click="addTimezone"
-            :disable="!selectedTimezone"
-            v-close-popup
-          />
+          <q-btn label="+ Add Time Zone" color="primary" @click="addTimezone" :disable="!selectedTimezone"
+            v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -102,18 +67,19 @@
             <a href="https://www.linkedin.com/in/mtferg/" target="_blank">linkedin.com/in/mtferg</a>
           </div>
           <div class="q-mt-lg">
-            This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael Ferguson) for any inquiries or feature requests.
+            This is a free project inspired by FIO which shut down in Oct. 2024. Please contact author (Michael
+            Ferguson)
+            for any inquiries or feature requests.
           </div>
         </q-card-section>
 
         <q-card-actions align="left">
-          <q-btn
-            icon="clear"
-            label="Reset Time Zone Data"
-            color="negative"
-            @click="resetData"
-            flat
-          />
+          <q-btn icon="clear" label="Reset Time Zone Data" color="negative" @click="resetData" flat />
+          <q-space />
+          <a href="https://www.buymeacoffee.com/mtferg" target="_blank" rel="noopener">
+            <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee"
+              style="height: 50px; width: 180px;" />
+          </a>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -139,7 +105,7 @@ import TimezoneStorage from 'src/storage/timezone-storage.js'
 import ColorStorage from 'src/storage/color-storage.js'
 
 export default defineComponent({
-  data () {
+  data() {
     return {
       appVersion: '3.0.0',
       loaded: false,
@@ -190,7 +156,7 @@ export default defineComponent({
 
   methods: {
     // Setup
-    setupData () {
+    setupData() {
       this.loaded = false
       this.getTimezoneOptions()
       this.reconcileTimezones()
@@ -198,7 +164,7 @@ export default defineComponent({
       this.loaded = true
     },
 
-    resetData () {
+    resetData() {
       // Reset Local Data
       this.timezones = []
       this.colors.forEach((_color, idx) => { this.colors[idx].used = false })
@@ -216,7 +182,7 @@ export default defineComponent({
     },
 
     // Build a friendly label like: "Eastern Time — New York (UTC-04:00)"
-    formatTimezoneLabel (tz) {
+    formatTimezoneLabel(tz) {
       const alt = tz.alternativeName || tz.name
       const city = (tz.mainCities && tz.mainCities.length > 0) ? tz.mainCities[0] : tz.countryName
       const offset = moment.tz(tz.name).format('Z')
@@ -225,7 +191,7 @@ export default defineComponent({
 
     // --- Setting Data ---
     // Get time zone options
-    getTimezoneOptions () {
+    getTimezoneOptions() {
       // Build dataset from tzdb
       const tzs = getTimeZones()
       this.tzdbList = tzs
@@ -246,7 +212,7 @@ export default defineComponent({
     },
 
     // Sets the given time zone as the new home
-    setHomeTimezone (timezone) {
+    setHomeTimezone(timezone) {
       this.homeTimezone = timezone
       const homeOffset = this.timezoneOffset(timezone)
       let foundTimezone = false
@@ -275,13 +241,13 @@ export default defineComponent({
       TimezoneStorage.setTimezones(this.timezones)
     },
 
-    refreshHomeTimezone () {
+    refreshHomeTimezone() {
       const userTimezone = moment.tz.guess()
       this.setHomeTimezone(userTimezone)
     },
 
     // Reconcile time zone information
-    reconcileTimezones () {
+    reconcileTimezones() {
       // Get saved timezones
       const savedTimezones = TimezoneStorage.getTimezones()
 
@@ -306,7 +272,7 @@ export default defineComponent({
     },
 
     // Reconcile color information
-    reconcileColors () {
+    reconcileColors() {
       // Get saved colors
       const savedColors = ColorStorage.getColors()
 
@@ -323,13 +289,13 @@ export default defineComponent({
     },
 
     // --- Adding / Remvoing Time Zones ---
-    addTimezone () {
+    addTimezone() {
       if (!this.selectedTimezone) return
       this.pushTimezone(this.selectedTimezone)
       this.selectedTimezone = ''
     },
 
-    pushTimezone (timezone, home = false) {
+    pushTimezone(timezone, home = false) {
       const timezonesCopy = JSON.parse(JSON.stringify(this.timezones))
       const homeOffset = this.timezoneOffset(this.homeTimezone)
       const offset = this.timezoneOffset(timezone)
@@ -351,7 +317,7 @@ export default defineComponent({
       ColorStorage.setColors(this.colors)
     },
 
-    removeTimezone (timezone) {
+    removeTimezone(timezone) {
       // Find Timezone
       const idx = this.timezones.findIndex((tz) => tz.timezone === timezone)
       if (idx < 0) return
@@ -366,12 +332,12 @@ export default defineComponent({
       TimezoneStorage.setTimezones(this.timezones)
     },
 
-    closeAddDialog () {
+    closeAddDialog() {
       this.showAddDialog = false
       this.selectedTimezone = ''
     },
 
-    filterTimezones (val, update) {
+    filterTimezones(val, update) {
       if (val === '') {
         update(() => {
           this.timezoneOpts = this.allTimezones.slice()
@@ -400,7 +366,7 @@ export default defineComponent({
     },
 
     // --- Color Functionality ---
-    newColor () {
+    newColor() {
       const availableColors = this.colors.filter(color => !color.used)
       if (availableColors.length === 0) {
         return this.deafultColor
@@ -411,12 +377,12 @@ export default defineComponent({
       return color.value
     },
 
-    releaseColor (color) {
+    releaseColor(color) {
       const foundColor = this.colors.find((c) => c.value === color)
       if (foundColor) foundColor.used = false
     },
 
-    changeColor (data) {
+    changeColor(data) {
       // Find Timezone
       const foundTimezone = this.timezones.find((timezone) => timezone.timezone === data.timezone)
       if (!foundTimezone) return
@@ -435,12 +401,12 @@ export default defineComponent({
   },
 
   computed: {
-    timezonesFull () {
+    timezonesFull() {
       return this.timezones.length >= 20
     }
   },
 
-  mounted () {
+  mounted() {
     this.setupData()
 
     // Event Listeners
@@ -458,7 +424,7 @@ export default defineComponent({
     })
   },
 
-  beforeUnmount () {
+  beforeUnmount() {
     this.$events.off('change-color')
     this.$events.off('set-home-timezone')
     this.$events.off('remove-timezone')
