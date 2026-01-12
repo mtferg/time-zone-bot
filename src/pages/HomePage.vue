@@ -103,6 +103,7 @@ import DateHelper from 'src/mixins/date-helper.js'
 // Stores
 import TimezoneStorage from 'src/storage/timezone-storage.js'
 import ColorStorage from 'src/storage/color-storage.js'
+import TimeOverrideStorage from 'src/storage/time-override-storage.js'
 
 export default defineComponent({
   data() {
@@ -397,6 +398,26 @@ export default defineComponent({
       // Save Color and Timezone Changes
       ColorStorage.setColors(this.colors)
       TimezoneStorage.setTimezones(this.timezones)
+    },
+
+    // --- Time Override Functionality ---
+    setOverrideTime(data) {
+      // Store the override
+      TimeOverrideStorage.setOverride({
+        sourceTimezone: data.timezone,
+        time: data.time
+      })
+
+      // Notify all timezone components
+      this.$events.emit('override-time-updated')
+    },
+
+    clearOverrideTime() {
+      // Clear the override from storage
+      TimeOverrideStorage.clearOverride()
+
+      // Notify all timezone components
+      this.$events.emit('override-time-cleared')
     }
   },
 
@@ -422,12 +443,21 @@ export default defineComponent({
     this.$events.on('refresh-home-timezone', () => {
       this.refreshHomeTimezone()
     })
+    this.$events.on('set-override-time', (data) => {
+      this.setOverrideTime(data)
+    })
+    this.$events.on('clear-override-time', () => {
+      this.clearOverrideTime()
+    })
   },
 
   beforeUnmount() {
     this.$events.off('change-color')
     this.$events.off('set-home-timezone')
     this.$events.off('remove-timezone')
+    this.$events.off('refresh-home-timezone')
+    this.$events.off('set-override-time')
+    this.$events.off('clear-override-time')
   },
 
   components: {
