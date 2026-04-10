@@ -18,6 +18,12 @@
       </q-page-sticky>
       <q-page-sticky position="top-right" :offset="[20, 20]">
         <div class="row items-center q-gutter-x-sm">
+          <div class="row items-center q-mr-md utc-display">
+            <div v-if="utcOverrideTime" class="text-blue-grey-1 text-body1 q-mr-sm">
+              {{ utcOverrideTime }} UTC
+            </div>
+            <div class="text-blue-grey-1 text-body1 text-weight-bold">{{ utcTime }} UTC</div>
+          </div>
           <q-btn :label="use24hr ? '24h' : '12h'" color="blue-grey-1" @click="toggleTimeFormat" flat round dense
             size="md" />
           <q-btn icon="help" size="lg" color="blue-grey-1" @click="showHelpDialog = true" flat round dense fab />
@@ -157,6 +163,11 @@ export default defineComponent({
       // Time format
       use24hr: false,
 
+      // UTC display
+      utcTime: '',
+      utcOverrideTime: null,
+      utcRefreshTimer: null,
+
       // Dialogs
       showAddDialog: false,
       showHelpDialog: false
@@ -171,6 +182,7 @@ export default defineComponent({
       this.getTimezoneOptions()
       this.reconcileTimezones()
       this.reconcileColors()
+      this.updateUtcTime()
       this.loaded = true
     },
 
@@ -431,9 +443,27 @@ export default defineComponent({
       this.$events.emit('override-time-cleared')
     },
 
+    updateUtcTime() {
+      this.utcTime = this.friendlyTime('UTC', undefined, this.use24hr)
+
+      const override = TimeOverrideStorage.getOverride()
+      if (override && override.sourceTimezone && override.time) {
+        const converted = this.convertTimeToTimezone(
+          override.sourceTimezone,
+          override.time,
+          'UTC',
+          this.use24hr
+        )
+        this.utcOverrideTime = converted ? converted.time : null
+      } else {
+        this.utcOverrideTime = null
+      }
+    },
+
     toggleTimeFormat() {
       this.use24hr = !this.use24hr
       TimeFormatStorage.setFormat(this.use24hr ? '24' : '12')
+      this.updateUtcTime()
       this.$events.emit('time-format-changed')
     }
   },
@@ -466,6 +496,20 @@ export default defineComponent({
     this.$events.on('clear-override-time', () => {
       this.clearOverrideTime()
     })
+
+    this.$events.on('override-time-updated', () => {
+      this.updateUtcTime()
+    })
+    this.$events.on('override-time-cleared', () => {
+      this.updateUtcTime()
+    })
+    this.$events.on('time-format-changed', () => {
+      this.updateUtcTime()
+    })
+
+    this.utcRefreshTimer = setInterval(() => {
+      this.updateUtcTime()
+    }, 5000)
   },
 
   beforeUnmount() {
@@ -475,6 +519,14 @@ export default defineComponent({
     this.$events.off('refresh-home-timezone')
     this.$events.off('set-override-time')
     this.$events.off('clear-override-time')
+    this.$events.off('override-time-updated')
+    this.$events.off('override-time-cleared')
+    this.$events.off('time-format-changed')
+
+    if (this.utcRefreshTimer) {
+      clearInterval(this.utcRefreshTimer)
+      this.utcRefreshTimer = null
+    }
   },
 
   components: {
