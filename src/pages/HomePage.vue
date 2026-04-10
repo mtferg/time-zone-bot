@@ -8,7 +8,7 @@
         <div class="row no-wrap">
           <div v-for="(timezone, idx) in timezones" :key="idx" class="col">
             <time-zone :color="timezone.color" :timezone="timezone.timezone" :home="timezone.home"
-              :offset="timezone.offset" :color-options="colors" />
+              :offset="timezone.offset" :color-options="colors" :use24hr="use24hr" />
           </div>
         </div>
       </q-scroll-area>
@@ -17,7 +17,11 @@
         <q-btn icon="add" color="secondary" @click="showAddDialog = true" :disabled="timezonesFull" fab />
       </q-page-sticky>
       <q-page-sticky position="top-right" :offset="[20, 20]">
-        <q-btn icon="help" size="lg" color="blue-grey-1" @click="showHelpDialog = true" flat round dense fab />
+        <div class="row items-center q-gutter-x-sm">
+          <q-btn :label="use24hr ? '24h' : '12h'" color="blue-grey-1" @click="toggleTimeFormat" flat round dense
+            size="md" />
+          <q-btn icon="help" size="lg" color="blue-grey-1" @click="showHelpDialog = true" flat round dense fab />
+        </div>
       </q-page-sticky>
     </div>
 
@@ -104,6 +108,7 @@ import DateHelper from 'src/mixins/date-helper.js'
 import TimezoneStorage from 'src/storage/timezone-storage.js'
 import ColorStorage from 'src/storage/color-storage.js'
 import TimeOverrideStorage from 'src/storage/time-override-storage.js'
+import TimeFormatStorage from 'src/storage/time-format-storage.js'
 
 export default defineComponent({
   data() {
@@ -149,6 +154,9 @@ export default defineComponent({
         { used: false, value: '#223843' }
       ],
 
+      // Time format
+      use24hr: false,
+
       // Dialogs
       showAddDialog: false,
       showHelpDialog: false
@@ -159,6 +167,7 @@ export default defineComponent({
     // Setup
     setupData() {
       this.loaded = false
+      this.use24hr = TimeFormatStorage.getFormat() === '24'
       this.getTimezoneOptions()
       this.reconcileTimezones()
       this.reconcileColors()
@@ -170,10 +179,12 @@ export default defineComponent({
       this.timezones = []
       this.colors.forEach((_color, idx) => { this.colors[idx].used = false })
       this.homeTimezone = ''
+      this.use24hr = false
 
       // Reset Storage
       TimezoneStorage.setTimezones(this.timezones)
       ColorStorage.setColors(this.colors)
+      TimeFormatStorage.setFormat('12')
 
       // Reset Data
       this.setupData()
@@ -418,6 +429,12 @@ export default defineComponent({
 
       // Notify all timezone components
       this.$events.emit('override-time-cleared')
+    },
+
+    toggleTimeFormat() {
+      this.use24hr = !this.use24hr
+      TimeFormatStorage.setFormat(this.use24hr ? '24' : '12')
+      this.$events.emit('time-format-changed')
     }
   },
 

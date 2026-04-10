@@ -59,7 +59,8 @@
 
       <!-- Show input only on hover when no override is active -->
       <div v-if="!hasOverride && isHovered" class="time-input-section">
-        <q-input v-model="timeInput" class="time-override-input" label="Check time" mask="##:##aa" placeholder="03:00pm"
+        <q-input v-model="timeInput" class="time-override-input" label="Check time"
+          :mask="use24hr ? '##:##' : '##:##aa'" :placeholder="use24hr ? '15:00' : '03:00pm'"
           dark outlined dense bg-color="rgba(255, 255, 255, 0.1)" label-color="white" color="white"
           @keyup.enter="setOverrideTime">
           <template v-slot:append>
@@ -103,6 +104,10 @@ export default defineComponent({
     colorOptions: {
       type: Array,
       required: true
+    },
+    use24hr: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -126,7 +131,7 @@ export default defineComponent({
   methods: {
     getDateAndTime() {
       // Always show current time in main display
-      this.time = this.friendlyTime(this.timezone)
+      this.time = this.friendlyTime(this.timezone, undefined, this.use24hr)
       this.date = this.friendlyDate(this.timezone)
 
       // Check if there's an active override
@@ -140,7 +145,8 @@ export default defineComponent({
         const converted = this.convertTimeToTimezone(
           override.sourceTimezone,
           override.time,
-          this.timezone
+          this.timezone,
+          this.use24hr
         )
         if (converted) {
           this.overrideTime = converted.time
@@ -157,7 +163,8 @@ export default defineComponent({
 
     setOverrideTime() {
       // Validate time input
-      if (!this.timeInput || this.timeInput.length < 7) {
+      const minLen = this.use24hr ? 5 : 7
+      if (!this.timeInput || this.timeInput.length < minLen) {
         return
       }
 
@@ -224,6 +231,10 @@ export default defineComponent({
   watch: {
     timezone() {
       this.getDateAndTime()
+    },
+    use24hr() {
+      this.timeInput = ''
+      this.getDateAndTime()
     }
   },
 
@@ -234,6 +245,10 @@ export default defineComponent({
 
     // Listen for override events
     this.$events.on('override-time-updated', () => {
+      this.getDateAndTime()
+    })
+
+    this.$events.on('time-format-changed', () => {
       this.getDateAndTime()
     })
 
@@ -248,6 +263,7 @@ export default defineComponent({
 
   beforeUnmount() {
     this.stopRefresh()
+    this.$events.off('time-format-changed')
     this.$events.off('override-time-updated')
     this.$events.off('override-time-cleared')
   },
