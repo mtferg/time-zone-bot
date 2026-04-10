@@ -74,14 +74,9 @@
 
 <script>
 import { defineComponent } from 'vue'
-import { getTimeZones } from '@vvo/tzdb'
 
 // Helpers
 import DateHelper from 'src/mixins/date-helper.js'
-import RefreshHelper from 'src/mixins/refresh-helper.js'
-
-// Storage
-import TimeOverrideStorage from 'src/storage/time-override-storage.js'
 
 export default defineComponent({
   props: {
@@ -108,6 +103,18 @@ export default defineComponent({
     use24hr: {
       type: Boolean,
       default: false
+    },
+    override: {
+      type: Object,
+      default: null
+    },
+    tzLookup: {
+      type: Map,
+      required: true
+    },
+    refreshTick: {
+      type: Number,
+      default: 0
     }
   },
 
@@ -130,18 +137,15 @@ export default defineComponent({
 
   methods: {
     getDateAndTime() {
-      // Always show current time in main display
       this.time = this.friendlyTime(this.timezone, undefined, this.use24hr)
       this.date = this.friendlyDate(this.timezone)
+    },
 
-      // Check if there's an active override
-      const override = TimeOverrideStorage.getOverride()
-
+    updateOverrideDisplay() {
+      const override = this.override
       if (override && override.sourceTimezone && override.time) {
         this.hasOverride = true
         this.isSourceTimezone = (override.sourceTimezone === this.timezone)
-
-        // Calculate and show override time for ALL cards (including source)
         const converted = this.convertTimeToTimezone(
           override.sourceTimezone,
           override.time,
@@ -153,7 +157,6 @@ export default defineComponent({
           this.overrideDate = converted.date
         }
       } else {
-        // No override
         this.hasOverride = false
         this.isSourceTimezone = false
         this.overrideTime = null
@@ -216,8 +219,7 @@ export default defineComponent({
       return this.offset > 0 ? `+${this.offset}` : this.offset
     },
     friendlyTimezone() {
-      const tzs = getTimeZones()
-      const tz = tzs.find((t) => t.name === this.timezone || (t.group && t.group.includes(this.timezone)))
+      const tz = this.tzLookup.get(this.timezone)
       if (!tz) return this.timezone
       const alt = tz.alternativeName || tz.name
       const city = (tz.mainCities && tz.mainCities.length > 0) ? tz.mainCities[0] : tz.countryName
@@ -231,46 +233,32 @@ export default defineComponent({
   watch: {
     timezone() {
       this.getDateAndTime()
+      this.updateOverrideDisplay()
     },
     use24hr() {
       this.timeInput = ''
       this.getDateAndTime()
+      this.updateOverrideDisplay()
+    },
+    override: {
+      handler() {
+        this.updateOverrideDisplay()
+      },
+      deep: true
+    },
+    refreshTick() {
+      this.getDateAndTime()
+      this.updateOverrideDisplay()
     }
   },
 
   mounted() {
     this.getDateAndTime()
-    // Always start auto-refresh for main time
-    this.startRefresh(this.getDateAndTime)
-
-    // Listen for override events
-    this.$events.on('override-time-updated', () => {
-      this.getDateAndTime()
-    })
-
-    this.$events.on('time-format-changed', () => {
-      this.getDateAndTime()
-    })
-
-    this.$events.on('override-time-cleared', () => {
-      this.hasOverride = false
-      this.isSourceTimezone = false
-      this.overrideTime = null
-      this.overrideDate = null
-      this.getDateAndTime()
-    })
-  },
-
-  beforeUnmount() {
-    this.stopRefresh()
-    this.$events.off('time-format-changed')
-    this.$events.off('override-time-updated')
-    this.$events.off('override-time-cleared')
+    this.updateOverrideDisplay()
   },
 
   mixins: [
-    DateHelper,
-    RefreshHelper
+    DateHelper
   ]
 })
 </script>

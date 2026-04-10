@@ -8,7 +8,8 @@
         <div class="row no-wrap">
           <div v-for="(timezone, idx) in timezones" :key="idx" class="col">
             <time-zone :color="timezone.color" :timezone="timezone.timezone" :home="timezone.home"
-              :offset="timezone.offset" :color-options="colors" :use24hr="use24hr" />
+              :offset="timezone.offset" :color-options="colors" :use24hr="use24hr"
+              :override="currentOverride" :tz-lookup="tzLookup" :refresh-tick="refreshTick" />
           </div>
         </div>
       </q-scroll-area>
@@ -163,6 +164,15 @@ export default defineComponent({
       // Time format
       use24hr: false,
 
+      // Centralized override state (passed to children as prop)
+      currentOverride: null,
+
+      // Centralized refresh tick — incremented by a single timer so all cards update in the same frame
+      refreshTick: 0,
+
+      // Pre-built timezone lookup map (iana name -> tzdb entry)
+      tzLookup: new Map(),
+
       // UTC display
       utcTime: '',
       utcOverrideTime: null,
@@ -182,6 +192,7 @@ export default defineComponent({
       this.getTimezoneOptions()
       this.reconcileTimezones()
       this.reconcileColors()
+      this.currentOverride = TimeOverrideStorage.getOverride() || null
       this.updateUtcTime()
       this.loaded = true
     },
@@ -216,11 +227,21 @@ export default defineComponent({
     // --- Setting Data ---
     // Get time zone options
     getTimezoneOptions() {
-      // Build dataset from tzdb
       const tzs = getTimeZones()
       this.tzdbList = tzs
 
-      // Build friendly label options and Fuse index
+      // Build a lookup map: iana name -> tzdb entry (including group aliases)
+      const lookup = new Map()
+      for (const tz of tzs) {
+        lookup.set(tz.name, tz)
+        if (tz.group) {
+          for (const alias of tz.group) {
+            if (!lookup.has(alias)) lookup.set(alias, tz)
+          }
+        }
+      }
+      this.tzLookup = lookup
+
       this.allTimezones = tzs.map((tz) => ({
         label: this.formatTimezoneLabel(tz),
         value: tz.name
@@ -425,28 +446,22 @@ export default defineComponent({
 
     // --- Time Override Functionality ---
     setOverrideTime(data) {
-      // Store the override
-      TimeOverrideStorage.setOverride({
-        sourceTimezone: data.timezone,
-        time: data.time
-      })
-
-      // Notify all timezone components
-      this.$events.emit('override-time-updated')
+      const override = { sourceTimezone: data.timezone, time: data.time }
+      TimeOverrideStorage.setOverride(override)
+      this.currentOverride = override
+      this.updateUtcTime()
     },
 
     clearOverrideTime() {
-      // Clear the override from storage
       TimeOverrideStorage.clearOverride()
-
-      // Notify all timezone components
-      this.$events.emit('override-time-cleared')
+      this.currentOverride = null
+      this.updateUtcTime()
     },
 
     updateUtcTime() {
       this.utcTime = this.friendlyTime('UTC', undefined, this.use24hr)
 
-      const override = TimeOverrideStorage.getOverride()
+      const override = this.currentOverride
       if (override && override.sourceTimezone && override.time) {
         const converted = this.convertTimeToTimezone(
           override.sourceTimezone,
@@ -464,7 +479,6 @@ export default defineComponent({
       this.use24hr = !this.use24hr
       TimeFormatStorage.setFormat(this.use24hr ? '24' : '12')
       this.updateUtcTime()
-      this.$events.emit('time-format-changed')
     }
   },
 
@@ -497,17 +511,10 @@ export default defineComponent({
       this.clearOverrideTime()
     })
 
-    this.$events.on('override-time-updated', () => {
-      this.updateUtcTime()
-    })
-    this.$events.on('override-time-cleared', () => {
-      this.updateUtcTime()
-    })
-    this.$events.on('time-format-changed', () => {
-      this.updateUtcTime()
-    })
-
+    // Single centralized refresh timer — incrementing refreshTick causes
+    // all TimeZone components to update in the same reactive flush.
     this.utcRefreshTimer = setInterval(() => {
+      this.refreshTick++
       this.updateUtcTime()
     }, 5000)
   },
@@ -519,9 +526,6 @@ export default defineComponent({
     this.$events.off('refresh-home-timezone')
     this.$events.off('set-override-time')
     this.$events.off('clear-override-time')
-    this.$events.off('override-time-updated')
-    this.$events.off('override-time-cleared')
-    this.$events.off('time-format-changed')
 
     if (this.utcRefreshTimer) {
       clearInterval(this.utcRefreshTimer)
